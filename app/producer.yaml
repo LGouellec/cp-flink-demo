@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-producer
+  namespace: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-producer
+  template:
+    metadata:
+      labels:
+        app: kafka-producer
+    spec:
+      containers:
+        - name: kafka-producer
+          image: clickstream-producer:latest
+          imagePullPolicy: Never
+          env:
+          - name: KAFKA_BOOTSTRAP_SERVERS
+            value: 'kafka.confluent.svc.cluster.local:9071'
+          - name: KAFKA_SCHEMA_REGISTRY_URL
+            value: 'http://schemaregistry.confluent.svc.cluster.local:8081'
+          - name: TOPIC_KAFKA
+            value: 'clickstream'    

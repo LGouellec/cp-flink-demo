@@ -1,0 +1,36 @@
+{
+  "type": "record",
+  "name": "ClickEventAgg",
+  "namespace": "org.example.flink.aggregated",
+  "fields": [
+    {
+      "name": "window_start",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Start timestamp of the aggregation window in milliseconds since the epoch"
+    },
+    {
+      "name": "window_end",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "End timestamp of the aggregation window in milliseconds since the epoch"
+    },
+    {
+      "name": "category",
+      "type": [
+        "null",
+        "string"
+      ],
+      "doc": "Category for the aggregated data (can be null if source category is null)"
+    },
+    {
+      "name": "event_count",
+      "type": "long",
+      "doc": "Count of events within the window"
+    }
+  ]
+}

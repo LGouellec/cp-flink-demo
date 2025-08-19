@@ -1,0 +1,41 @@
+{
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "Unique identifier for the event"
+    },
+    {
+      "name": "userId",
+      "type": "string",
+      "doc": "User Id which click on a specific product"
+    },
+    {
+      "name": "productId",
+      "type": "string",
+      "doc": "Product Id targeted by this event"
+    },
+    {
+      "name": "userLocation",
+      "type": "string",
+      "doc": "Location (mainly the country or the city) of the user"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Timestamp of the event in milliseconds since the epoch"
+    },
+    {
+      "name": "category",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Optional category for grouping"
+    }
+  ],
+  "type": "record",
+  "name": "ClickEvent",
+  "namespace": "org.example.avro"
+}

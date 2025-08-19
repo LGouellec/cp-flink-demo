@@ -1,0 +1,74 @@
+{
+    "apiVersion": "cmf.confluent.io/v1",
+    "kind": "FlinkApplication",
+    "metadata": {
+       "name": "clickeventcount-app"
+    },
+    "spec": {
+       "image": "flink-count-job:latest",
+       "podTemplate": {
+          "metadata": {
+             "name": "pod-template"
+          },
+          "spec": {
+             "volumes": [
+                {
+                   "name": "flink-data",
+                   "emptyDir": {}
+                }
+             ],
+             "containers": [
+                {
+                   "name": "flink-main-container",
+                   "env": [
+                      {
+                         "name": "ENABLE_BUILT_IN_PLUGINS",
+                         "value": "flink-s3-fs-hadoop-1.19.1-cp1.jar;flink-s3-fs-presto-1.19.1-cp1.jar"
+                      },
+                      {
+                        "name": "KAFKA_BOOTSTRAP_SERVERS",
+                        "value": "kafka.confluent.svc.cluster.local:9071"
+                      },
+                      {
+                        "name": "SCHEMA_REGISTRY_URL",
+                        "value": "http://schemaregistry.confluent.svc.cluster.local:8081"
+                      },
+                      {
+                        "name": "TOPIC_INPUT_KAFKA",
+                        "value": "clickstream"
+                      },
+                      {
+                        "name": "TOPIC_OUTPUT_KAFKA",
+                        "value": "clickstreamagg"
+                      }
+                   ],
+                   "volumeMounts": [
+                      {
+                         "name": "flink-data",
+                         "mountPath": "/opt/flink-data"
+                      }
+                   ]
+                }
+             ]
+          }
+       },
+       "job": {
+          "jarURI": "local:///lib/job.jar",
+          "parallelism": 1,
+          "state": "running",
+          "upgradeMode": "stateless"
+       },
+       "jobManager": {
+          "resource": {
+             "cpu": 1,
+             "memory": "1048m"
+          }
+       },
+       "taskManager": {
+          "resource": {
+             "cpu": 1,
+             "memory": "1048m"
+          }
+       }
+    }
+ }

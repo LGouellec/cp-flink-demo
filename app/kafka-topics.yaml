@@ -1,0 +1,226 @@
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: clickstream
+  namespace: confluent
+spec:
+  kafkaClusterRef:
+    name: kafka
+    namespace: confluent
+  replicas: 1
+  partitionCount: 1
+  configs:
+    cleanup.policy: "delete"
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: clickstreamagg
+  namespace: confluent
+spec:
+  kafkaClusterRef:
+    name: kafka
+    namespace: confluent
+  replicas: 1
+  partitionCount: 1
+  configs:
+    cleanup.policy: "delete"
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: popularproduct
+  namespace: confluent
+spec:
+  kafkaClusterRef:
+    name: kafka
+    namespace: confluent
+  replicas: 1
+  partitionCount: 1
+  configs:
+    cleanup.policy: "delete"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickstream-value-avro-schema
+  namespace: confluent
+data:
+  schema: |
+    {
+    "fields": [
+      {
+        "name": "id",
+        "type": "string",
+        "doc": "Unique identifier for the event"
+      },
+      {
+        "name": "userId",
+        "type": "string",
+        "doc": "User Id which click on a specific product"
+      },
+      {
+        "name": "productId",
+        "type": "string",
+        "doc": "Product Id targeted by this event"
+      },
+      {
+        "name": "userLocation",
+        "type": "string",
+        "doc": "Location (mainly the country or the city) of the user"
+      },
+      {
+        "name": "event_time",
+        "type": {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        },
+        "doc": "Timestamp of the event in milliseconds since the epoch"
+      },
+      {
+        "name": "category",
+        "type": ["null", "string"],
+        "default": null,
+        "doc": "Optional category for grouping"
+      }
+    ],
+    "type": "record",
+    "name": "ClickEvent",
+    "namespace": "org.example.avro"
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickstreamagg-value-avro-schema
+  namespace: confluent
+data:
+  schema: |
+    {
+    "type": "record",
+    "name": "ClickEventAgg",
+    "namespace": "org.example.flink.aggregated",
+    "fields": [
+      {
+        "name": "window_start",
+        "type": {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        },
+        "doc": "Start timestamp of the aggregation window in milliseconds since the epoch"
+      },
+      {
+        "name": "window_end",
+        "type": {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        },
+        "doc": "End timestamp of the aggregation window in milliseconds since the epoch"
+      },
+      {
+        "name": "category",
+        "type": [
+          "null",
+          "string"
+        ],
+        "doc": "Category for the aggregated data (can be null if source category is null)"
+      },
+      {
+        "name": "event_count",
+        "type": "long",
+        "doc": "Count of events within the window"
+      }
+    ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: popularproduct-value-avro-schema
+  namespace: confluent
+data:
+  schema: |
+    {
+      "fields": [
+        {
+          "name": "window_start",
+          "type": {
+            "type": "long",
+            "logicalType": "timestamp-millis"
+          },
+          "doc": "Start timestamp of the aggregation window in milliseconds since the epoch"
+        },
+        {
+          "name": "window_end",
+          "type": {
+            "type": "long",
+            "logicalType": "timestamp-millis"
+          },
+          "doc": "End timestamp of the aggregation window in milliseconds since the epoch"
+        },
+        {
+          "name": "location",
+          "type": "string",
+          "doc": "Location (mainly the country or the city) of the user"
+        },
+        {
+          "name": "products",
+          "type": {
+            "type": "array",
+            "items": {
+              "type": "record",
+              "name": "Product",
+              "fields": [
+                { "name": "id", "type": "string" },
+                { "name": "count", "type": "long" }
+              ]
+            }
+          }
+        }
+      ],
+      "type": "record",
+      "name": "PopularProduct",
+      "namespace": "org.example.avro"
+    }
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Schema
+metadata:
+  name: clickstream-value
+  namespace: confluent
+spec:
+  schemaRegistryClusterRef:
+    name: schemaregistry
+    namespace: confluent
+  data:
+    configRef: clickstream-value-avro-schema
+    format: avro 
+  compatibilityLevel: BACKWARD
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Schema
+metadata:
+  name: clickstreamagg-value 
+  namespace: confluent
+spec:
+  schemaRegistryClusterRef:
+    name: schemaregistry
+    namespace: confluent
+  data:
+    configRef: clickstreamagg-value-avro-schema
+    format: avro 
+  compatibilityLevel: BACKWARD
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Schema
+metadata:
+  name: popularproduct-value 
+  namespace: confluent
+spec:
+  schemaRegistryClusterRef:
+    name: schemaregistry
+    namespace: confluent
+  data:
+    configRef: popularproduct-value-avro-schema
+    format: avro 
+  compatibilityLevel: BACKWARD

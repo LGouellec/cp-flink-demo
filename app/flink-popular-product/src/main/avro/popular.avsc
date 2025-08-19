@@ -1,0 +1,42 @@
+{
+  "fields": [
+    {
+      "name": "window_start",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Start timestamp of the aggregation window in milliseconds since the epoch"
+    },
+    {
+      "name": "window_end",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "End timestamp of the aggregation window in milliseconds since the epoch"
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "doc": "Location (mainly the country or the city) of the user"
+    },
+    {
+      "name": "products",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Product",
+          "fields": [
+            { "name": "id", "type": "string" },
+            { "name": "count", "type": "long" }
+          ]
+        }
+      }
+    }
+  ],
+  "type": "record",
+  "name": "PopularProduct",
+  "namespace": "org.example.avro"
+}
