@@ -52,21 +52,27 @@ public class PopularProductPerRegion {
         ConfluentRegistryAvroSerializationSchema<PopularProduct> popularProductConfluentRegistryAvroSerializationSchema =
                 ConfluentRegistryAvroSerializationSchema.forSpecific(PopularProduct.class,TOPIC_OUTPUT + "-value", schemaRegistryUrl);
 
+        // DEFINE THE KAFKA SOURCE
         KafkaSource<ClickEvent> source = KafkaSource.<ClickEvent>builder()
                 .setTopics(inputTopic)
                 .setValueOnlyDeserializer(clickEventConfluentRegistryAvroDeserializationSchema)
                 .setProperties(kafkaProps)
                 .build();
 
+        // DEFINE THE WATERMARKSTRATEGY
         WatermarkStrategy<ClickEvent> watermarkStrategy = WatermarkStrategy
                 .<ClickEvent>forBoundedOutOfOrderness(Duration.ofMillis(200))
                 .withIdleness(Duration.ofSeconds(5))
                 .withTimestampAssigner((clickEvent, l) -> clickEvent.getEventTime().toEpochMilli());
 
+        // Create the stream
         DataStream<ClickEvent> clicks = env.fromSource(source, watermarkStrategy, "ClickEvent PopularProduct Source");
 
+        // Define the type of the window
         WindowAssigner<Object, TimeWindow> assigner = TumblingEventTimeWindows.of(WINDOW_SIZE);
 
+        // Processing part
+        // I'd like to group per location and get the top 3 most popular product per minute
         DataStream<PopularProduct> statistics = clicks
                 .keyBy(ClickEvent::getUserLocation)
                 .window(assigner)
@@ -78,12 +84,14 @@ public class PopularProductPerRegion {
                             Iterable<ClickEvent> elements,
                             Collector<PopularProduct> collector) throws Exception {
 
+                        // Count number of iteration per product
                         Map<String, Long> productCounts = new HashMap<>();
                         for (ClickEvent click : elements) {
                             Long newVal = productCounts.getOrDefault(click.getProductId().toString(), 0L);
                             productCounts.put(click.getProductId().toString(), newVal + 1);
                         }
 
+                        // Get the top3 most popular product
                         List<Product> top3 = productCounts
                                 .entrySet()
                                 .stream()
@@ -93,6 +101,7 @@ public class PopularProductPerRegion {
                                 .map((tuple) -> new Product(tuple.f0, tuple.f1))
                                 .collect(Collectors.toList());
 
+                        // Generate a new event with the window dates + location + top3 products
                         collector.collect(new PopularProduct(
                                 new Date(context.window().getStart()).toInstant(),
                                 new Date(context.window().getEnd()).toInstant(),
@@ -102,6 +111,7 @@ public class PopularProductPerRegion {
                 })
                 .name("ClickEvent PopularProduct Counter");
 
+        // Sink the result into another Kafka topic
         statistics.sinkTo(
                         KafkaSink.<PopularProduct>builder()
                                 .setBootstrapServers(kafkaProps.getProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG))
@@ -114,6 +124,7 @@ public class PopularProductPerRegion {
                                 .build())
                 .name("ClickEvent PopularProduct Sink");
 
+        // Compile the JobGraph and sent it
         env.execute("Popular Products");
     }
 
